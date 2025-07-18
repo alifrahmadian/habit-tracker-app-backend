@@ -6,5 +6,8 @@ import (
 )
 
 func SetupRoutes(secretKey string, router *gin.Engine, handlers *configs.Handler) {
-
+	publicRoutes := router.Group("")
+	{
+		publicRoutes.POST("/register", handlers.AuthHandler.Register)
+	}
 }

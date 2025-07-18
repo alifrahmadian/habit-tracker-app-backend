@@ -3,6 +3,7 @@ include .env
 APP_NAME=habit_tracker_app
 MAIN=./cmd
 
+# DB Migrations
 MIGRATION_PATH = db/migrations
 DATABASE_URL = "postgres://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${DB_NAME}?sslmode=disable"
 

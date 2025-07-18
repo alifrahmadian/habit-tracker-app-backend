@@ -1,0 +1,5 @@
+ALTER TABLE users
+DROP CONSTRAINT users_username_unique;
+
+ALTER TABLE users
+DROP COLUMN EMAIL;

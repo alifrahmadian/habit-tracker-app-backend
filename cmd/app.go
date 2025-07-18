@@ -5,7 +5,10 @@ import (
 
 	"github.com/alifrahmadian/habit-tracker-app-backend/configs"
 	"github.com/alifrahmadian/habit-tracker-app-backend/internal/db"
+	"github.com/alifrahmadian/habit-tracker-app-backend/internal/handlers"
+	"github.com/alifrahmadian/habit-tracker-app-backend/internal/repositories"
 	"github.com/alifrahmadian/habit-tracker-app-backend/internal/routes"
+	"github.com/alifrahmadian/habit-tracker-app-backend/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,11 +32,19 @@ func loadConfig() (*configs.Config, error) {
 		return nil, fmt.Errorf("failed to connect database: %w", err)
 	}
 
+	userRepo := repositories.NewUserRepository(db)
+
+	authService := services.NewAuthService(userRepo)
+
+	authHandler := handlers.NewAuthHandler(&authService, authConfig.SecretKey, authConfig.TTL)
+
 	return &configs.Config{
 		DB:         db,
 		AuthConfig: authConfig,
-		Handler:    &configs.Handler{},
-		Env:        env,
+		Handler: &configs.Handler{
+			AuthHandler: authHandler,
+		},
+		Env: env,
 	}, nil
 }
 
