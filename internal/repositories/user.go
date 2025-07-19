@@ -4,12 +4,14 @@ import (
 	"database/sql"
 
 	"github.com/alifrahmadian/habit-tracker-app-backend/internal/models"
+	e "github.com/alifrahmadian/habit-tracker-app-backend/pkg/errors"
 )
 
 type UserRepository interface {
 	CreateUser(user *models.User) (*models.User, error)
 	GetUserByUsername(username string) (*models.User, error)
 	GetUserByEmail(email string) (*models.User, error)
+	GetUserByIdentity(identity string) (*models.User, error)
 }
 
 type userRepository struct {
@@ -121,6 +123,43 @@ func (r *userRepository) GetUserByEmail(email string) (*models.User, error) {
 	}
 
 	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (r *userRepository) GetUserByIdentity(identity string) (*models.User, error) {
+	user := &models.User{}
+
+	query := `
+		SELECT 
+			id, role_id, first_name, last_name, username, email, password, created_at, updated_at 
+		FROM
+			users
+		WHERE username = $1 or email = $1
+	`
+
+	err := r.DB.
+		QueryRow(
+			query,
+			identity,
+		).
+		Scan(&user.Id,
+			&user.RoleId,
+			&user.FirstName,
+			&user.LastName,
+			&user.Username,
+			&user.Email,
+			&user.Password,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, e.ErrUserCredentialsInvalid
+		}
 		return nil, err
 	}
 

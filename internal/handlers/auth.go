@@ -9,7 +9,8 @@ import (
 	"github.com/alifrahmadian/habit-tracker-app-backend/internal/handlers/responses"
 	"github.com/alifrahmadian/habit-tracker-app-backend/internal/models"
 	"github.com/alifrahmadian/habit-tracker-app-backend/internal/services"
-	"github.com/alifrahmadian/habit-tracker-app-backend/pkg/errors"
+	e "github.com/alifrahmadian/habit-tracker-app-backend/pkg/errors"
+	"github.com/alifrahmadian/habit-tracker-app-backend/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -36,19 +37,19 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		for _, err := range err.(validator.ValidationErrors) {
 			switch err.Field() {
 			case "FirstName":
-				responses.FailedResponse(c, http.StatusBadRequest, errors.ErrUserFirstNameRequired.Error())
+				responses.FailedResponse(c, http.StatusBadRequest, e.ErrUserFirstNameRequired.Error())
 				return
 			case "LastName":
-				responses.FailedResponse(c, http.StatusBadRequest, errors.ErrUserLastNameRequired.Error())
+				responses.FailedResponse(c, http.StatusBadRequest, e.ErrUserLastNameRequired.Error())
 				return
 			case "Username":
-				responses.FailedResponse(c, http.StatusBadRequest, errors.ErrUserUsernameRequired.Error())
+				responses.FailedResponse(c, http.StatusBadRequest, e.ErrUserUsernameRequired.Error())
 				return
 			case "Email":
-				responses.FailedResponse(c, http.StatusBadRequest, errors.ErrUserEmailRequired.Error())
+				responses.FailedResponse(c, http.StatusBadRequest, e.ErrUserEmailRequired.Error())
 				return
 			case "Password":
-				responses.FailedResponse(c, http.StatusBadRequest, errors.ErrPasswordRequired.Error())
+				responses.FailedResponse(c, http.StatusBadRequest, e.ErrPasswordRequired.Error())
 				return
 			}
 		}
@@ -67,7 +68,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	userModel, err := h.AuthService.Register(user)
 	if err != nil {
-		if err == errors.ErrUsernameAlreadyExist || err == errors.ErrEmailAlreadyExist {
+		if err == e.ErrUsernameAlreadyExist || err == e.ErrEmailAlreadyExist {
 			responses.FailedResponse(c, http.StatusConflict, err.Error())
 			return
 		}
@@ -86,4 +87,45 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, "register success!", resp)
+}
+
+func (h *AuthHandler) Login(c *gin.Context) {
+	req := dtos.LoginRequest{}
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			switch err.Field() {
+			case "Identity":
+				responses.FailedResponse(c, http.StatusBadRequest, e.ErrUserIdentityRequired.Error())
+				return
+			case "Password":
+				responses.FailedResponse(c, http.StatusBadRequest, e.ErrPasswordRequired.Error())
+				return
+			}
+		}
+	}
+
+	userModel, err := h.AuthService.Login(req.Identity, req.Password)
+	if err != nil {
+		if err == e.ErrUserCredentialsInvalid {
+			responses.FailedResponse(c, http.StatusUnauthorized, err.Error())
+			return
+		}
+
+		responses.FailedResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	token, err := utils.GenerateToken(userModel, h.SecretKey, h.TTL)
+	if err != nil {
+		responses.FailedResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	resp := &dtos.LoginResponse{
+		Token: token,
+	}
+
+	responses.SuccessResponse(c, "login success!", resp)
 }

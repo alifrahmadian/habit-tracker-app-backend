@@ -9,6 +9,7 @@ import (
 
 type AuthService interface {
 	Register(user *models.User) (*models.User, error)
+	Login(identity, password string) (*models.User, error)
 }
 
 type authService struct {
@@ -63,4 +64,17 @@ func (s *authService) Register(user *models.User) (*models.User, error) {
 
 	return usr, nil
 
+}
+
+func (s *authService) Login(identity, password string) (*models.User, error) {
+	user, err := s.UserRepo.GetUserByIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	if !utils.ComparePassword(password, user.Password) {
+		return nil, e.ErrUserCredentialsInvalid
+	}
+
+	return user, nil
 }
